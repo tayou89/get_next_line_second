@@ -6,15 +6,16 @@
 /*   By: tayou <tayou@student.42seoul.kr>           +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/01/21 20:19:27 by tayou             #+#    #+#             */
-/*   Updated: 2023/01/24 20:02:59 by tayou            ###   ########.fr       */
+/*   Updated: 2023/01/24 22:48:19 by tayou            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "get_next_line.h"
 
-int	check_list_newline(t_list *backup)
+int	check_newline(t_list *backup)
 {
 	int		i;
+	char	*str;
 
 	while (backup->next != NULL)
 	{
@@ -22,12 +23,12 @@ int	check_list_newline(t_list *backup)
 		while ((backup->content)[i] != '\0')
 		{
 			if ((backup->content)[i] == '\n')
-				return (1);
+				return (i);
 			i++;
 		}
 		backup = backup->next;
 	}
-	return (0);
+	return (-1);
 }
 
 void	ft_lstclear(t_list **lst)
@@ -39,29 +40,64 @@ void	ft_lstclear(t_list **lst)
 	while (*lst != NULL)
 	{
 		copy = (*lst)->next;
-		*lst->content = NULL;
+		(*lst)->content = NULL;
 		free(*lst);
 		*lst = copy;
 	}
 	*lst = NULL;
 }
 
+void	malloc_fill_content(char **string, char *buf)
+{
+	int	size;
+	int	i;
+
+	i = 0;
+	while (buf[i] != '\0')
+		i++;
+	size = i;
+	*string = (char *) malloc(sizeof(char) * size + 1);
+	if (*string == 0)
+		return ;
+	i = 0;
+	while (buf[i] != '\0')
+	{
+		(*string)[i] = buf[i];
+		i++;
+	}
+	(*string)[i] = '\0';
+}
+
+void	ft_lstnew(t_list **lst, char *content)
+{
+	*lst = (t_list *) malloc(sizeof(t_list));
+	if (*lst == NULL)
+		return ;
+	(*lst)->content = content;
+	(*lst)->next = NULL;
+}
+
 void	ft_lstadd_back(t_list **backup, char *buf)
 {
-	t+list	*new_list;
-	t_list	*copy_lst;
+	t_list	*new_list;
+	t_list	*copy_backup;
 
 	new_list = (t_list *) malloc(sizeof(t_list));
 	if (new_list == NULL)
 	{
-		ft_lstclear(*backup);
+		ft_lstclear(backup);
 		return ;
 	}
-	new_list->content = buf;
-	new_list->next = NULL;
-	if (backup == NULL)
+	malloc_fill_content(&(new_list->content), buf);
+	if (new_list->content == 0)
 	{
-		*lst = new_list;
+		ft_lstclear(backup);
+		return ;
+	}
+	new_list->next = NULL;
+	if (*backup == NULL)
+	{
+		*backup = new_list;
 		return ;
 	}
 	copy_backup = *backup;
@@ -73,7 +109,7 @@ void	ft_lstadd_back(t_list **backup, char *buf)
 int	get_size(t_list *backup)
 {
 	int		size;
-	int		i
+	int		i;
 
 	i = 0;
 	while (backup->next != NULL)
@@ -105,8 +141,8 @@ void	get_line(char **line, t_list *backup)
 		i = 0;
 		while ((backup->content)[i] != '\0')
 		{
-			line[line_index] = (backup->content)[i];
-			if ((bakcup->content)[i] == '\n')
+			(*line)[line_index] = (backup->content)[i];
+			if ((backup->content)[i] == '\n')
 				break ;
 			line_index++;
 			i++;
@@ -118,14 +154,27 @@ void	get_line(char **line, t_list *backup)
 void	renewal_backup(t_list **backup)
 {
 	t_list	*copy;
+	int		newline_point;
+	int		i;
+
 	while ((*backup)->next != NULL)
 	{
 		copy = (*backup)->next;
-		(*backup)-
-
-
-
-
+		free((*backup)->content);
+		*backup = copy;
+	}
+	newline_point = check_newline(*backup);
+	if (newline_point >= 0)
+	{
+		i = 0;
+		while (((*backup)->content)[newline_point] != '\0')
+		{
+			((*backup)->content)[i] = ((*backup)->content)[newline_point + 1];
+			i++;
+			newline_point++;
+		}
+	}
+}
 
 char	*get_next_line(int fd)
 {
@@ -136,7 +185,7 @@ char	*get_next_line(int fd)
 
 	if (fd < 0 || BUFFER_SIZE < 1)
 		return (NULL);
-	backup = (t_list *) malloc(sizeof(t_list));
+	ft_lstnew(&backup, NULL);
 	if (backup == NULL)
 		return (NULL);
 	read_size = read(fd, buf, BUFFER_SIZE);
@@ -146,20 +195,12 @@ char	*get_next_line(int fd)
 		ft_lstadd_back(&backup, buf);
 		if (backup == NULL)
 			return (NULL);
-		if (check_newline(backup) == 1)
-		{
-			get_line(&line, backup);
-			renewal_backup(&backup);
-			return (line);
-		}
+		if (check_newline(backup) >= 0)
+			break ;
 		read_size = read(fd, buf, BUFFER_SIZE);
 	}
+	free(buf);
+	get_line(&line, backup);
+	renewal_backup(&backup);
+	return (line);
 }		
-			
-
-
-
-
-
-
-
